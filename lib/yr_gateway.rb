@@ -35,7 +35,7 @@ class YrGateway
         sun_set = time["location"]["sun"]["set"]
         moon_rise = time["location"]["moon"]["rise"]
         moon_set = time["location"]["moon"]["set"]
-        phase = time["location"]["moon"]["phase"]
+        phase = phase_to_fraction(time["location"]["moon"]["phase"])
 
         sun_events << sun_event("rise", sun_rise)
         sun_events << sun_event("set", sun_set)
@@ -114,5 +114,18 @@ class YrGateway
 
   def url(date_from, date_to)
     "http://api.yr.no/weatherapi/sunrise/1.0/?lat=51.0;lon=0.0;from=#{date_from};to=#{date_to}"
+  end
+
+  def phase_to_fraction(words)
+    {
+      "New moon" => 0.0,
+      "Waxing crescent" => 0.125,
+      "First quarter" => 0.25,
+      "Waxing gibbous" => 0.375,
+      "Full moon" => 0.5,
+      "Waning gibbous" => 0.625,
+      "Third quarter" => 0.75,
+      "Waning crescent" => 0.875
+    }[words]
   end
 end
