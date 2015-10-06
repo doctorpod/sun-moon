@@ -11,6 +11,14 @@ SunMoon.SUN_GLARE_RADIUS = 200;
 // rising.
 SunMoon.SUN_GLARE_CHANGE_OFFSET = 0.05;
 
+// Positions along circle
+SunMoon.SUNRISE = 0.0;
+SunMoon.SUNRISE_UPPER = SunMoon.SUNRISE + SunMoon.SUN_GLARE_CHANGE_OFFSET;
+SunMoon.SUNRISE_LOWER = SunMoon.SUNRISE - SunMoon.SUN_GLARE_CHANGE_OFFSET;
+SunMoon.SUNSET = 1.0;
+SunMoon.SUNSET_UPPER = SunMoon.SUNSET - SunMoon.SUN_GLARE_CHANGE_OFFSET;
+SunMoon.SUNSET_LOWER = SunMoon.SUNSET + SunMoon.SUN_GLARE_CHANGE_OFFSET;
+
 SunMoon.draw = function () {
   var ctx = this.canvas.getContext("2d");
   var lineX = this.canvas.height * 0.5;
@@ -78,18 +86,21 @@ SunMoon.getData = function() {
 }
 
 SunMoon.paintBackground = function(ctx, sunAge, sunPos, width, height) {
+  var lowerSet = 1.0 + this.SUN_GLARE_CHANGE_OFFSET,
+      lowerRise = 2.0 - this.SUN_GLARE_CHANGE_OFFSET;
+
   if (sunAge <= 1.0) {
     blue = 255;
   }
-  else if (sunAge > 1.1 && sunAge < 1.9) {
+  else if (sunAge > lowerSet && sunAge < lowerRise) {
     blue = 0;
   }
   else {
-    if (sunAge <= 1.1) {
-      blue = Math.round(((1.1 - sunAge) / 0.1) * 255);
+    if (sunAge <= lowerSet) {
+      blue = Math.round(((lowerSet - sunAge) / this.SUN_GLARE_CHANGE_OFFSET) * 255);
     }
     else {
-      blue = Math.round(((sunAge - 1.9) / 0.1) * 255);
+      blue = Math.round(((sunAge - lowerRise) / this.SUN_GLARE_CHANGE_OFFSET) * 255);
     }
   }
 
