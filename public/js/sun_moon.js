@@ -4,7 +4,7 @@ SunMoon = {};
 SunMoon.SUNMOON_RADIUS = 20;
 
 // How far out the glare from the sun extends.
-SunMoon.SUN_GLARE_RADIUS = 200;
+SunMoon.SUN_GLARE_RADIUS = 100;
 
 // How close to the horizon the sun's glare starts to change colour.
 // The smaller the number, the closer to the horizon, both when setting and
@@ -19,6 +19,13 @@ SunMoon.SUNSET = 1.0;
 SunMoon.SUNSET_UPPER = SunMoon.SUNSET - SunMoon.SUN_GLARE_CHANGE_OFFSET;
 SunMoon.SUNSET_LOWER = SunMoon.SUNSET + SunMoon.SUN_GLARE_CHANGE_OFFSET;
 
+SunMoon.clouds = {
+  cover: 0,
+  top: 0,
+  bottom: 0,
+  data: []
+};
+
 SunMoon.draw = function () {
   var ctx = this.canvas.getContext("2d");
   var lineX = this.canvas.height * 0.5;
@@ -28,15 +35,18 @@ SunMoon.draw = function () {
   var arcX = this.canvas.width / 2.0;
   var arcY = lineX;
 
-  var sunAge = this.age(this.data["sun"]);
+  var sunAge = this.age(this.data["sunmoon"]["sun"]);
   var sunPos = this.arcPos(sunAge, arcX, arcY, arcRadius);
-  var moonAge = this.age(this.data["moon"]);
+  var moonAge = this.age(this.data["sunmoon"]["moon"]);
   var moonPos = this.arcPos(moonAge, arcX, arcY, arcRadius);
-  var moonPhase = this.phase(this.data["moon"]);
+  var moonPhase = this.phase(this.data["sunmoon"]["moon"]);
 
   console.log("sunAge: " + sunAge);
   console.log("moonAge: " + moonAge);
   console.log("moonPhase: " + moonPhase);
+  console.log("clouds: " + this.data["weather"]["clouds"]["all"]);
+
+  this.randomiseClouds(this.canvas.width * 0.35, this.canvas.height * 0.35, this.canvas.width * 0.3, this.canvas.height * 0.05, this.data["weather"]["clouds"]["all"]/100.0);
 
   // Clear
   ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -57,6 +67,112 @@ SunMoon.draw = function () {
   this.drawSun(ctx, sunPos.x, sunPos.y);
   this.drawMoon(ctx, moonPos.x, moonPos.y);
   this.drawPhaseShadow(ctx, moonPos, this.SUNMOON_RADIUS, moonPhase);
+  this.drawClouds(ctx);
+  this.drawRain(
+    ctx, 
+    this.canvas.width * 0.35, 
+    this.canvas.height * 0.42, 
+    this.canvas.width * 0.3, 
+    this.canvas.height * 0.05, 
+    this.evaluateRain()
+  );
+}
+
+SunMoon.evaluateRain = function() {
+  if (this.data["weather"]["rain"] === undefined) {
+    console.log("No rain data");
+    return 0.0;
+  }
+  else {
+    if (this.data["weather"]["rain"]["1h"] !== undefined) {
+      console.log("rain.1h: " + this.data["weather"]["rain"]["1h"]);
+      return this.data["weather"]["rain"]["1h"];
+    }
+    else if (this.data["weather"]["rain"]["3h"] !== undefined) {
+      console.log("rain.3h: " + this.data["weather"]["rain"]["3h"]);
+      return this.data["weather"]["rain"]["3h"] / 3.0;
+    }
+    else {
+      console.log("Neither rain.1h nor rain.3h defined");
+      return 0.0;
+    }
+  }
+}
+
+SunMoon.drawRain = function(ctx, x, y, width, height, volume) {
+  ctx.strokeStyle = "#aaa";
+
+  for(i = 0; i < 10; i++) {
+    var dropX = (Math.random() * width) + x,
+        dropY = (Math.random() * height) + y,
+        dropXe = dropX + (5.0 * volume),
+        dropYe = dropY + (30.0 * volume);
+
+    ctx.beginPath();
+    ctx.moveTo(dropX, dropY);
+    ctx.lineTo(dropXe, dropYe);
+    ctx.stroke();
+  }
+}
+
+SunMoon.randomiseClouds = function(x, y, width, height, cover) {
+  if (cover == this.clouds.cover) {
+    return;
+  }
+
+  var maxR = height * 0.4,
+      minR = height * 0.1;
+      boxArea = width * height;
+  var cloudR, cloudX, cloudY;
+
+  this.clouds.cover = cover;
+  this.clouds.top = y;
+  this.clouds.bottom = y + height;
+  this.clouds.data = [];
+
+  for(area = 0; area < (boxArea * cover); ) {
+    cloudR = (Math.random() * (maxR - minR)) + minR;
+    cloudX = (Math.random() * width) + x;
+    cloudY = (Math.random() * height) + y;
+
+    this.clouds.data.push({ x: cloudX, y: cloudY, r: cloudR });
+    area = area + ((2 * cloudR) * (2 * cloudR));
+  }
+}
+
+SunMoon.drawClouds = function(ctx) {
+  var cloudX, cloudY, cloudR;
+  var grdLinear = ctx.createLinearGradient(0, this.clouds.top, 0, this.clouds.bottom);
+
+  grdLinear.addColorStop(0.5, '#fff');
+  grdLinear.addColorStop(1, '#aaa');
+
+  for(i = 0; i < this.clouds.data.length; i++) {
+    cloudX = this.clouds.data[i].x;
+    cloudY = this.clouds.data[i].y;
+    cloudR = this.clouds.data[i].r;
+
+    ctx.beginPath();
+    ctx.arc(cloudX, cloudY, cloudR, 0, 2 * Math.PI, false);
+    ctx.fillStyle = grdLinear;
+    ctx.fill();
+
+    this.drawCloudTail(ctx, -1, cloudX, cloudY, cloudR, 0.6);
+    this.drawCloudTail(ctx, 1, cloudX, cloudY, cloudR, 0.4);
+  }
+}
+
+SunMoon.drawCloudTail = function(ctx, dir, parentX, parentY, parentRadius, reduction) {
+  var newRadius = parentRadius * reduction,
+      newX = parentX + (dir * parentRadius),
+      newY = parentY + (parentRadius * (1.0 - reduction));
+
+  if(parentRadius > 1) {
+    ctx.beginPath();
+    ctx.arc(newX, newY, newRadius, 0, 2 * Math.PI, false);
+    ctx.fill();
+    this.drawCloudTail(ctx, dir, newX, newY, newRadius, reduction);
+  }
 }
 
 SunMoon.phase = function(data) {
