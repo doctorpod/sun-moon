@@ -4,12 +4,27 @@
     <meta charset="UTF-8">
     <title>Sun and moon clock</title>
     <script type="text/javascript" src="js/sun_moon.js"></script>
+
+    <style>
+      #main {
+        z-index: 1;
+        position:absolute;
+        left:0;
+        top:0;
+      }
+      #clouds {
+        z-index: 2;
+        position:absolute;
+        left: 0;
+        top: 165px;
+      }
+    </style>
   </head>
 
   <body onload="SunMoon.start();">
-    <div style="border: none; width: 500px; margin: auto;">
-      <canvas id="clock" width="500" height="500">
-      </canvas>
+    <div>
+      <canvas id="main" width="500px" height="500px"></canvas>
+      <canvas id="clouds" width="500px" height="50px"></canvas>
     </div>
   </body>
 </html>
