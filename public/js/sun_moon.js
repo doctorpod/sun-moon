@@ -11,6 +11,10 @@ SunMoon.SUN_GLARE_RADIUS = 100;
 // rising.
 SunMoon.SUN_GLARE_CHANGE_OFFSET = 0.05;
 
+// The range of temperatures you deem the most comfortable in degrees celcius.
+SunMoon.MIN_IDEAL_TEMP = 15.5;
+SunMoon.MAX_IDEAL_TEMP = 23.8;
+
 // Positions along circle
 SunMoon.SUNRISE = 0.0;
 SunMoon.SUNRISE_UPPER = SunMoon.SUNRISE + SunMoon.SUN_GLARE_CHANGE_OFFSET;
@@ -49,6 +53,7 @@ SunMoon.draw = function () {
   console.log("moonPhase: " + moonPhase);
   console.log("clouds: " + this.data["weather"]["clouds"]["all"]);
   console.log("wind: " + this.data["weather"]["wind"]["speed"]);
+  console.log("temp: " + this.data["weather"]["main"]["temp"]);
 
   // Clear
   ctx.clearRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
@@ -79,12 +84,62 @@ SunMoon.draw = function () {
     this.evaluateRain()
   );
 
+  this.drawThermometer(
+    ctx,
+    this.mainCanvas.width * 0.35,
+    this.mainCanvas.height * 0.55,
+    this.data["weather"]["main"]["temp"]
+  )
+
   if (this.cloudsRunning === 0) {
     this.cloudsRunning = 1;
-    requestAnimationFrame(this.newClouds.bind(SunMoon));
+    requestAnimationFrame(this.drawClouds.bind(SunMoon));
   }
 
   setTimeout(this.getData.bind(SunMoon), 15000);
+}
+
+SunMoon.drawThermometer = function(ctx, x, y, temp) {
+  var width = 5,
+      secHeight = 12,
+      needleOverhang = 10,
+      brightness = 180,
+      needleY;
+
+  // Thermometer body
+  ctx.beginPath();
+  ctx.fillStyle = "rgb("+brightness+",0,0)";
+  ctx.fillRect(x, y, width, secHeight);
+  ctx.arc(x+(width/2), y, width/2, 0, 2 * Math.PI, false);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.fillStyle = "rgb(0,"+brightness+",0)";
+  ctx.fillRect(x, y+secHeight, width, secHeight);
+  ctx.fillStyle = "rgb(0,0,"+brightness+")";
+  ctx.fillRect(x, y+(2*secHeight), width, secHeight);
+  ctx.fillStyle = "rgb("+brightness+","+brightness+","+brightness+")";
+  ctx.fillRect(x, y+(3*secHeight), width, secHeight);
+  ctx.arc(x+(width/2), y+(4*secHeight), width, 0, 2 * Math.PI, false);
+  ctx.fill();
+
+  // Needle
+  if (temp <= 0) {
+    needleY = y + (3 * secHeight) - ((temp/30) * secHeight);
+  }
+  else if (temp <= this.MIN_IDEAL_TEMP) {
+    needleY = y + (3 * secHeight) - ((temp/this.MIN_IDEAL_TEMP) * secHeight);
+  }
+  else if (temp <= this.MAX_IDEAL_TEMP) {
+    needleY = y + (3 * secHeight) - ((temp/this.MAX_IDEAL_TEMP) * (2 * secHeight));
+  }
+  else {
+    needleY = y + (3 * secHeight) - ((temp/30) * (3 * secHeight));
+  }
+
+  ctx.strokeStyle = "#aaa";
+  ctx.moveTo(x - needleOverhang, needleY);
+  ctx.lineTo(x + width + needleOverhang, needleY);
+  ctx.stroke();
 }
 
 SunMoon.evaluateRain = function() {
@@ -124,7 +179,7 @@ SunMoon.drawRain = function(ctx, x, y, width, height, volume) {
   }
 }
 
-SunMoon.newClouds = function() {
+SunMoon.drawClouds = function() {
   var ctx = this.cloudsCanvas.getContext("2d");
   var x = 10; 
   var y = 10; 
@@ -185,27 +240,7 @@ SunMoon.newClouds = function() {
   this.clouds.trailingEdge = trailingEdge;
   this.clouds.data = newClouds;
 
-  requestAnimationFrame(this.newClouds.bind(SunMoon));
-}
-
-SunMoon.drawClouds = function(ctx) {
-  var cloudX, cloudY, cloudR;
-  var grdLinear = ctx.createLinearGradient(0, this.clouds.top, 0, this.clouds.bottom);
-
-
-  for(i = 0; i < this.clouds.data.length; i++) {
-    cloudX = this.clouds.data[i].x;
-    cloudY = this.clouds.data[i].y;
-    cloudR = this.clouds.data[i].r;
-
-    ctx.beginPath();
-    ctx.arc(cloudX, cloudY, cloudR, 0, 2 * Math.PI, false);
-    ctx.fillStyle = grdLinear;
-    ctx.fill();
-
-    this.drawCloudTail(ctx, -1, cloudX, cloudY, cloudR, 0.6);
-    this.drawCloudTail(ctx, 1, cloudX, cloudY, cloudR, 0.4);
-  }
+  requestAnimationFrame(this.drawClouds.bind(SunMoon));
 }
 
 SunMoon.drawCloudTail = function(ctx, dir, parentX, parentY, parentRadius, reduction) {
@@ -439,7 +474,7 @@ SunMoon.drawPhaseShadow = function(ctx, moonPos, moonRadius, phase) {
   var maxControlOffset = moonRadius * 1.3; // Gives us a half circle
   var terminatorContOffset; 
   var outerContOffset;
-  var shadowStyle = "rgba(0, 0, 0, 0.7)";
+  var shadowStyle = "rgba(0, 0, 0, 0.6)";
 
   ctx.strokeStyle = shadowStyle;
   ctx.fillStyle = shadowStyle;
