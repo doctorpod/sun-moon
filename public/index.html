@@ -3,28 +3,30 @@
   <head>
     <meta charset="UTF-8">
     <title>Sun and moon clock</title>
-    <script type="text/javascript" src="js/sun_moon.js"></script>
+    <script type="text/javascript" src="js/weather.js"></script>
+    <script type="text/javascript" src="js/background.js"></script>
+    <script type="text/javascript" src="js/main.js"></script>
 
     <style>
-      #main {
+      #background {
         z-index: 1;
         position:absolute;
         left:0;
         top:0;
       }
-      #clouds {
+      #weather {
         z-index: 2;
         position:absolute;
         left: 0;
-        top: 165px;
+        top: 0;
       }
     </style>
   </head>
 
-  <body onload="SunMoon.start();">
+  <body onload="sunMoon.start('background', 'weather');">
     <div>
-      <canvas id="main" width="500px" height="500px"></canvas>
-      <canvas id="clouds" width="500px" height="50px"></canvas>
+      <canvas id="background" width="500px" height="500px"></canvas>
+      <canvas id="weather" width="500px" height="500px"></canvas>
     </div>
   </body>
 </html>
