@@ -1,5 +1,5 @@
 // Weather
-var weather = function() {
+sunMoon.weather = function() {
   var animation; // Keep a ref to it so we can stop it
 
   function start(canvasId, data, x, y, width, height) {
@@ -196,7 +196,7 @@ var weather = function() {
         }
       });
 
-      // Spawn a new flake TODO rate sh be based on lastHr
+      // Spawn a new batch of flakes every 10th frame
       if (Math.random() > 0.9) {
         for (var i = 0; i < (20*lastHr); i++) {
           newFlakes.push({
