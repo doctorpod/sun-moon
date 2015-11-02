@@ -52,8 +52,8 @@ sunMoon.weather = function() {
           );
 
       // TODO remove
-      ctx.rect(x, y, width, height);
-      ctx.stroke();
+      // ctx.rect(x, y, width, height);
+      // ctx.stroke();
       ctx.beginPath();
 
       grd.addColorStop(0.4, 'rgba(255,255,255,1)');
@@ -128,8 +128,12 @@ sunMoon.weather = function() {
           dropsPerFrame = lastHr * 0.000001,
           newDrops = [];
 
-      ctx.rect(x, y, width, height);
-      ctx.stroke();
+      if (lastHr == 0) {
+        return;
+      }
+
+      // ctx.rect(x, y, width, height);
+      // ctx.stroke();
       ctx.beginPath();
 
       // Draw existing drops
@@ -174,8 +178,12 @@ sunMoon.weather = function() {
           dropRate = 0.25,
           newFlakes = [];
 
-      ctx.rect(x, y, width, height);
-      ctx.stroke();
+      if (lastHr == 0) {
+        return;
+      }
+
+      // ctx.rect(x, y, width, height);
+      // ctx.stroke();
       ctx.beginPath();
       ctx.strokeStyle = "white";
 
