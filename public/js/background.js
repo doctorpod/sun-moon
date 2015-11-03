@@ -24,7 +24,7 @@ sunMoon.background = function() {
         data.set(JSON.parse(request.responseText));
         draw(ctx);
         sunMoon.weather.stop();
-        sunMoon.weather.start(wId, data.weather(), 150, 175, 200, 75);
+        sunMoon.weather.start(wId, data.weather(), 100, 175, 300, 75);
 
       } else {
         // We reached our target server, but it returned an error
@@ -79,7 +79,11 @@ sunMoon.background = function() {
     track.draw(ctx);
     drawGuage(ctx, data.weather().temp);
     sun.draw(ctx, sunPos);
-    moon.draw(ctx, track.position(data.trackPos("moon")));
+    moon.draw(
+      ctx,
+      track.position(data.trackPos("moon")),
+      data.phase()
+    );
   }
 
   function shiftPalet(from, to, factor) {
@@ -162,15 +166,27 @@ sunMoon.background = function() {
       raw = data;
     }
 
-    function trackPos(body) {
-      var d = new Date(),
-          now = d.getTime() / 1000,
-          lowerBound,
-          events = raw.sunmoon[body];
+    function timeNow() {
+      var d = new Date();
+      return d.getTime() / 1000;
+    }
+
+    function prevEventIndex(body) {
+      var events = raw.sunmoon[body],
+          now = timeNow(),
+          prev;
 
       for (i = 0; events[i].unix_t < now; i++) {
-        lowerBound = i;
+        prev = i;
       }
+
+      return prev;
+    }
+
+    function trackPos(body) {
+      var r, s, events = raw.sunmoon[body],
+          lowerBound = prevEventIndex(body),
+          now = timeNow();
 
       if (events[lowerBound].type == "rise") {
         r = events[lowerBound].unix_t;
@@ -182,6 +198,10 @@ sunMoon.background = function() {
         r = events[lowerBound+1].unix_t;
         return ((now - s) / (r - s)) + 1.0;
       }
+    }
+
+    function phase() {
+      return raw.sunmoon.moon[prevEventIndex("moon")].phase;
     }
 
     function rain() {
@@ -217,8 +237,8 @@ sunMoon.background = function() {
         cloud: raw.weather.clouds.all / 100,
         temp:  raw.weather.main.temp,
         wind:  raw.weather.wind.speed,
-        rain: rain(),
-        snow: snow()
+        rain:  rain(),
+        snow:  snow()
       };
     }
 
@@ -226,7 +246,8 @@ sunMoon.background = function() {
       getRaw: getRaw,
       set: set,
       trackPos: trackPos,
-      weather: weather
+      weather: weather,
+      phase: phase
     }
   }();
 
@@ -398,7 +419,7 @@ sunMoon.background = function() {
 
   var moon = function() {
     function draw(ctx, pos, phase) {
-      console.log("Drawing moon");
+      console.log("Drawing moon: " + phase);
       var radius = 0.5 * goldenReduce(ctx.canvas.clientHeight, 5),
           x = pos.x, y = pos.y;
 
@@ -426,6 +447,62 @@ sunMoon.background = function() {
         ctx.fillStyle = 'rgb(115, 115, 115)';
         ctx.fill();
       }
+
+      phaseShadow(ctx, pos, radius, phase);
+    }
+
+    function phaseShadow(ctx, moonPos, moonRadius, phase) {
+      var moonTop = moonPos.y - moonRadius;
+      var moonBottom = moonPos.y + moonRadius;
+      var maxControlOffset = moonRadius * 1.3; // Gives us a half circle
+      var terminatorContOffset;
+      var outerContOffset;
+      var shadowStyle = "rgba(0, 0, 0, 0.6)";
+
+      ctx.strokeStyle = shadowStyle;
+      ctx.fillStyle = shadowStyle;
+
+      if (phase < 0.01 || phase > 0.99) {
+        // New
+        ctx.arc(moonPos.x, moonPos.y, moonRadius, 0, 2 * Math.PI, false);
+        ctx.fill();
+        return;
+      }
+      else if (phase < 0.25) {
+        // First quarter crescent
+        terminatorContOffset = moonPos.x + (maxControlOffset * (phase/0.25));
+        outerContOffset = moonPos.x - maxControlOffset;
+      }
+      else if (phase < 0.49) {
+        // First quarter gibbous
+        terminatorContOffset = moonPos.x - (maxControlOffset * ((phase-0.25)/0.25));
+        outerContOffset = moonPos.x - maxControlOffset;
+      }
+      else if (phase < 0.51) {
+        // Full - no shadow required
+        return;
+      }
+      else if (phase < 0.75) {
+        // Last quarter gibbous
+        terminatorContOffset = moonPos.x + (maxControlOffset * ((phase-0.5)/0.25));
+        outerContOffset = moonPos.x + maxControlOffset;
+      }
+      else {
+        // Last quarter crescent
+        terminatorContOffset = moonPos.x - (maxControlOffset * ((phase-0.75)/0.25));
+        outerContOffset = moonPos.x + maxControlOffset;
+      }
+
+      ctx.beginPath();
+
+      // Terminator
+      ctx.moveTo(moonPos.x, moonTop);
+      ctx.bezierCurveTo(terminatorContOffset, moonTop, terminatorContOffset, moonBottom, moonPos.x, moonBottom);
+
+      // Outer arc
+      ctx.bezierCurveTo(outerContOffset, moonBottom-3, outerContOffset, moonTop+3, moonPos.x, moonTop);
+      ctx.fill();
+      ctx.stroke();
     }
 
     return {

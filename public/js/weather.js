@@ -48,7 +48,7 @@ sunMoon.weather = function() {
               0,
               x + Math.round(width/2),
               y + height,
-              width
+              width * 0.6
           );
 
       // TODO remove
