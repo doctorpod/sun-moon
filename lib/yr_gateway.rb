@@ -10,22 +10,25 @@ class YrGateway
   def initialize
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::DEBUG
-    @data = nil
+    @data = {}
     @max_event_unix = 0
   end
 
-  def get
+  def get(lat, lon)
     now = Time.now
+    cache_key = "#{(lat*100).round} #{(lon*100).round}"
 
-    if (@max_event_unix - now.to_i) > MIN_LOOKAHEAD
+    if @data[cache_key] && (@data[cache_key][:sun].last[:unix_t] - now.to_i) > MIN_LOOKAHEAD
       @logger.info "Using cached data"
-      return @data
+      return @data[cache_key]
     end
 
-    @logger.info "Fetching data form YR"
     date_from = (now - DAY).strftime("%Y-%m-%d")
     date_to = (now + MAX_LOOKAHEAD).strftime("%Y-%m-%d")
-    response = HTTParty.get(url(date_from, date_to))
+    u = url(lat, lon, date_from, date_to)
+    @logger.info "Fetching data form YR: #{u}"
+
+    response = HTTParty.get(u)
     sun_events = []
     moon_events = []
 
@@ -47,7 +50,7 @@ class YrGateway
       moon_events = interpolate_moon_events(sort(moon_events))
       @max_event_unix = [sun_events.last[:unix_t], moon_events.last[:unix_t]].sort.last
 
-      @data = { sun: sun_events, moon: moon_events }
+      @data[cache_key] = { sun: sun_events, moon: moon_events }
     else
       { error: true, message: response.message }
     end
@@ -112,8 +115,8 @@ class YrGateway
     }
   end
 
-  def url(date_from, date_to)
-    "http://api.yr.no/weatherapi/sunrise/1.0/?lat=51.0;lon=0.0;from=#{date_from};to=#{date_to}"
+  def url(lat, lon, date_from, date_to)
+    "http://api.yr.no/weatherapi/sunrise/1.0/?lat=#{lat};lon=#{lon};from=#{date_from};to=#{date_to}"
   end
 
   def phase_to_fraction(words)

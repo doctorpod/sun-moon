@@ -16,9 +16,12 @@ get "/" do
 end
 
 get "/data" do
+  lat = params[:lat].to_f
+  lon = params[:lon].to_f
+
   content_type :json
   {
-    sunmoon: settings.yr_gateway.get,
-    weather: settings.openweathermap_gateway.get
+    sunmoon: settings.yr_gateway.get(lat, lon),
+    weather: settings.openweathermap_gateway.get(lat, lon)
   }.to_json
 end

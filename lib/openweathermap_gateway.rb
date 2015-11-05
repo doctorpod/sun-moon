@@ -7,25 +7,25 @@ class OpenweathermapGateway
   def initialize(api_key)
     @logger = Logger.new(STDOUT)
     @logger.level = Logger::DEBUG
-    @data = nil
-    @last_timestamp = 0
+    @data = {}
     @api_key = api_key
   end
 
-  def get(lat = 50.84, lon = -0.14)
-    now = Time.now
+  def get(lat, lon)
+    @logger.info "OpenweathermapGateway called with lat: #{lat}, lon: #{lon}"
+    now_unix = Time.now.to_i
+    cache_key = "#{(lat*100).round} #{(lon*100).round}"
 
-    if (now.to_i - @last_timestamp) < CACHE_TTL
+    if @data[cache_key] && (now_unix - @data[cache_key]["dt"]) < CACHE_TTL
       @logger.info "Using cached data"
-      return @data
+      return @data[cache_key]
     end
 
-    @logger.info "Fetching data from openweathermap"
+    @logger.info "Fetching data from openweathermap: #{url(lat, lon)}"
     response = HTTParty.get(url(lat, lon))
 
     if response.code == 200
-      @last_timestamp = response.parsed_response["dt"]
-      @data = response.parsed_response
+      @data[cache_key] = response.parsed_response
     else
       { error: true, message: response.message }
     end
