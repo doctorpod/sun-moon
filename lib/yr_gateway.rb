@@ -116,7 +116,7 @@ class YrGateway
   end
 
   def url(lat, lon, date_from, date_to)
-    "http://api.yr.no/weatherapi/sunrise/1.0/?lat=#{lat};lon=#{lon};from=#{date_from};to=#{date_to}"
+    "http://api.met.no/weatherapi/sunrise/1.1/?lat=#{lat};lon=#{lon};from=#{date_from};to=#{date_to}"
   end
 
   def phase_to_fraction(words)
